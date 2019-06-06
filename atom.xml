@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2019-06-04T15:18:58.000Z</updated>
+  <updated>2019-06-06T12:36:55.000Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -15,6 +15,34 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>跨域之jsonp-使用koa2手动实现一个jsonp</title>
+    <link href="http://yoursite.com/2019/06/06/jsonp/"/>
+    <id>http://yoursite.com/2019/06/06/jsonp/</id>
+    <published>2019-06-06T12:29:00.000Z</published>
+    <updated>2019-06-06T12:36:55.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>跨域是前端面试经常会被问到的一道题目，而跨域其中一种实现方式就是jsonp，这篇博客记录一下jsonp的原理以及使用koa2手动实现jsonp的过程。</p><h2 id="一、跨域的概念"><a href="#一、跨域的概念" class="headerlink" title="一、跨域的概念"></a>一、跨域的概念</h2><p>我们在前端页面中发起XMLHttpRequest请求时，由于浏览器的同源策略会导致跨域。同源是指协议、域名、端口号这三者都要相同，只要其中有任意一个不同，就会导致跨域。浏览器的同源策略主要是防范来自不同源的恶意文件。</p><h2 id="二、jsonp原理"><a href="#二、jsonp原理" class="headerlink" title="二、jsonp原理"></a>二、jsonp原理</h2><p>jsonp解决跨域问题利用的是script标签可以加载任意位置下的文件这个特性，我们把要请求的地址作为script标签的src属性去请求，为了在请求到数据以后前端可以执行对应的回调函数，需要后端在返回的时候做一些相应的支持。</p><h2 id="三、实践"><a href="#三、实践" class="headerlink" title="三、实践"></a>三、实践</h2><p>这部分我们就根据jsonp的原理来手动实现一下。首先是客户端部分的代码，jsonp函数是动态创建script标签并发起请求的过程，handleResponse函数是请求成功以后的回调函数，参数data是请求回来的数据。<br>这里要注意的是jsonp在请求时需要把回调函数的函数名作为参数一起附在请求的url里。</p><h3 id="1、客户端代码"><a href="#1、客户端代码" class="headerlink" title="1、客户端代码"></a>1、客户端代码</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// jsonp</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">jsonp</span>(<span class="params">url</span>)</span>&#123;</span><br><span class="line">    url += <span class="string">'?callback=handleResponse'</span></span><br><span class="line">    <span class="keyword">var</span> scripts = <span class="built_in">document</span>.createElement(<span class="string">"script"</span>);</span><br><span class="line">    scripts.src = url;</span><br><span class="line">    <span class="built_in">document</span>.body.appendChild(scripts);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// callback</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">handleResponse</span>(<span class="params">data</span>)</span>&#123;</span><br><span class="line">    alert(data.age);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发起jsonp请求</span></span><br><span class="line">jsonp(<span class="string">'http://localhost:3000/users'</span>);</span><br></pre></td></tr></table></figure><h3 id="2、服务端代码"><a href="#2、服务端代码" class="headerlink" title="2、服务端代码"></a>2、服务端代码</h3><p>以上实现了jsonp的客户端代码，服务端代码需要考虑的问题是如何在将数据返回以后可以执行回调函数，首先我们知道客户端在执行回调函数的时候使用的是handleResponse(data)这样的形式，那么我们就需要将后台返回的内容拼接成这样的字符串，那么前端在加载到script标签中的文件时就会执行其中的代码，也就是handleResponse(data)。以下是使用koa2框架实现的服务端代码，这里只附上了实现逻辑部分的代码。</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">router.get(<span class="string">'/users'</span>, <span class="function"><span class="keyword">function</span> (<span class="params">ctx, next</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> callback = ctx.query.callback;                             <span class="comment">// 获取回调函数名</span></span><br><span class="line">  <span class="built_in">console</span>.log(callback);</span><br><span class="line">  <span class="keyword">const</span> data = &#123;<span class="string">'name'</span>: <span class="string">'pincal'</span>, <span class="string">'age'</span>: <span class="number">18</span>&#125;;                        <span class="comment">// 构造返回数据</span></span><br><span class="line">  <span class="keyword">const</span> res = callback + <span class="string">'('</span> + <span class="built_in">JSON</span>.stringify(data) + <span class="string">')'</span>;      <span class="comment">// 拼接返回字符串</span></span><br><span class="line">  <span class="built_in">console</span>.log(res);                                                         <span class="comment">// handleResponse(&#123;"name":"pincal","age":18&#125;)</span></span><br><span class="line">  ctx.body = res;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure><hr><p>跨域还有一些其他的实现方法，例如CORS，代理等，后面会陆续写完跨域这部分的内容。</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;跨域是前端面试经常会被问到的一道题目，而跨域其中一种实现方式就是jsonp，这篇博客记录一下jsonp的原理以及使用koa2手动实现jsonp的过程。&lt;/p&gt;
+&lt;h2 id=&quot;一、跨域的概念&quot;&gt;&lt;a href=&quot;#一、跨域的概念&quot; class=&quot;headerlink&quot; ti
+      
+    
+    </summary>
+    
+    
+      <category term="前端" scheme="http://yoursite.com/tags/%E5%89%8D%E7%AB%AF/"/>
+    
+      <category term="Javascript" scheme="http://yoursite.com/tags/Javascript/"/>
+    
+      <category term="跨域" scheme="http://yoursite.com/tags/%E8%B7%A8%E5%9F%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>闭包详解</title>
