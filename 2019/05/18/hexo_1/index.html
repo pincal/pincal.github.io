@@ -36,6 +36,9 @@ var bszCaller,bszTag;!function(){var c,d,e,a=!1,b=[];ready=function(c){return a|
 
 <h4 id="4-2-发布"><a href="#4-2-发布" class="headerlink" title="4.2 发布"></a>4.2 发布</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ npm install hexo-deployer-git --save</span><br><span class="line">$ hexo d</span><br></pre></td></tr></table></figure>
 
+<p>有时候执行上述命令，显示本地没有更新，可以使用下面命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ hexo clean</span><br><span class="line">$ hexo g</span><br><span class="line">$ hexo d</span><br></pre></td></tr></table></figure>
+
 <p>过程中要输入Github用户名和密码，这时候在浏览器输入你前面配置好的Github仓库名就可以看到你的博客了。</p>
 <hr>
 <p>到这里我们就完成最初级的个人博客搭建了，下一篇介绍一下关于博客的个人化配置。</p>
